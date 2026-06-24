@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "backend-api:1.0"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -10,21 +14,25 @@ pipeline {
             }
         }
 
-        stage('Build Backend Image') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker build -t backend-api:1.0 ./backend || true'
+                sh 'docker build -t $IMAGE_NAME ./backend || true'
             }
         }
 
-        stage('Build Frontend Image') {
+        stage('Verify Image') {
             steps {
-                sh 'docker build -t frontend-app:1.0 ./frontend || true'
+                sh 'docker images | grep backend'
             }
         }
 
-        stage('Verify Images') {
+        stage('Deploy to Kubernetes') {
             steps {
-                sh 'docker images'
+                sh '''
+                kubectl apply -f k8s/ || true
+                kubectl get pods
+                kubectl get svc
+                '''
             }
         }
     }
