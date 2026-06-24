@@ -2,38 +2,52 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "backend-api:1.0"
+        KUBECONFIG = '/root/.kube/config'
     }
 
     stages {
 
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
-                    url: 'https://github.com/ayeshactl/k8s-devops-portfolio.git'
+                url: 'https://github.com/ayeshactl/k8s-devops-portfolio.git'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Verify Cluster') {
             steps {
-                sh 'docker build -t $IMAGE_NAME ./backend || true'
-            }
-        }
-
-        stage('Verify Image') {
-            steps {
-                sh 'docker images | grep backend'
+                sh 'kubectl get nodes'
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                kubectl apply -f k8s/ || true
-                kubectl get pods
-                kubectl get svc
+                    echo "Applying Kubernetes manifests..."
+                    kubectl apply -f k8s/
+
+                    echo "Checking pods..."
+                    kubectl get pods
+
+                    echo "Checking services..."
+                    kubectl get svc
                 '''
             }
+        }
+
+        stage('Verify Ingress') {
+            steps {
+                sh 'kubectl get ingress'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 Deployment Successful!"
+        }
+        failure {
+            echo "❌ Deployment Failed!"
         }
     }
 }
